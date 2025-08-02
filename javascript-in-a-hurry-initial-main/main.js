@@ -1,4 +1,7 @@
 //Ejemplo práctico: Añadir o quitar la clase "nav-open", segun se haga click en un botón, para abrir o cerrar un menú.
+const weatherAPIKey = "1bb443a2743f41a221cecdf806188466";
+const weatherAPIURL = `https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid=${weatherAPIKey}&units=metric`;
+
 const galleryImages = [
   { src: "./assets/gallery/image1.jpg", alt: "image 1" },
   { src: "./assets/gallery/image2.jpg", alt: "image 2" },
@@ -36,27 +39,8 @@ function greetingHandler() {
       : currentHour < 24
       ? "Good Evening"
       : "Welcome";
-  let weatherCondition = "sunny";
-  let userLocation = "Rio de Janeiro";
-  let temperature = 26;
-  let celsiusText = `The weather is ${weatherCondition} in ${userLocation} and it's ${temperature.toFixed(
-    1
-  )}°C outside.`;
-  let fahrText = `The weather is ${weatherCondition} in ${userLocation} and it's ${celsiusToFahr(
-    temperature
-  ).toFixed(1)}°F outside.`;
+
   document.querySelector("#greeting").innerHTML = greetingText;
-  document.querySelector("p#weather").innerHTML = celsiusText;
-  document
-    .querySelector(".weather-group")
-    .addEventListener("click", function (e) {
-      if (e.target.id === "celsius") {
-        document.querySelector("p#weather").innerHTML = celsiusText;
-      } else {
-        document.querySelector("p#weather").innerHTML = fahrText;
-      }
-    }); //weather-group es class por eso lleva "." para buscarlo. "#" es para id
-  //"e" es para saber que pasa como eventos
 }
 
 function clockHandler() {
@@ -102,23 +86,6 @@ function galleryHandler() {
     thumbnails.appendChild(thumb);
   });
 }
-
-//pageLoad
-menuHandler();
-greetingHandler();
-clockHandler();
-galleryHandler();
-
-//<div class="product-item">
-//    <img src="./assets/products/img6.png" alt="AstroFiction">
-//       <div class="product-details">
-//          <h3 class="product-title">AstroFiction</h3>
-//          <p class="product-author">John Doe</p>
-//          <p class="price-title">Price</p>
-//          <p class="product-price">$ 49.90</p>
-//       </div>
-//</div>
-
 const products = [
   {
     title: "AstroFiction",
@@ -158,9 +125,10 @@ const products = [
   },
 ];
 
-function productsHandler() {
+function selectedProducts(productsToShow) {
   let productsSection = document.querySelector(".products-area");
-  products.forEach(function (product, index) {
+  productsSection.textContent = "";
+  productsToShow.forEach(function (product) {
     let productItem = document.createElement("div");
     productItem.classList.add("product-item");
 
@@ -200,4 +168,83 @@ function productsHandler() {
   });
 }
 
+function productsHandler() {
+  let totalProducts = products.length;
+
+  let totalPaidProducts = products.filter((product) => product.price > 0);
+
+  let totalFreeProducts = products.filter(
+    (product) => product.price <= 0 || !product.price
+  );
+
+  selectedProducts(products);
+
+  document.querySelector(
+    ".products-filter label[for=all] span.product-amount"
+  ).textContent = totalProducts;
+  document.querySelector(
+    ".products-filter label[for=paid] span.product-amount"
+  ).textContent = totalPaidProducts.length;
+  document.querySelector(
+    ".products-filter label[for=free] span.product-amount"
+  ).textContent = totalFreeProducts.length;
+
+  let productsFilter = document.querySelector(".products-filter");
+  productsFilter.addEventListener("click", function (e) {
+    let productsToShow =
+      e.target.id === "all"
+        ? products
+        : e.target.id === "paid"
+        ? totalPaidProducts
+        : totalFreeProducts;
+    selectedProducts(productsToShow);
+  });
+}
+
+function weatherHandler() {
+  navigator.geolocation.getCurrentPosition((position) => {
+    let latitude = position.coords.latitude;
+    let longitude = position.coords.longitude;
+    let url = weatherAPIURL
+      .replace("{lat}", latitude)
+      .replace("{lon}", longitude);
+    fetch(url)
+      .then((response) => response.json())
+      .then((data) => {
+        const weatherCondition = data.weather[0].description;
+        const userLocation = data.name;
+        const temperature = undefined;
+
+        let celsiusText = `The weather is ${weatherCondition} in ${userLocation} and it's ${temperature.toFixed(
+          1
+        )}°C outside.`;
+        let fahrText = `The weather is ${weatherCondition} in ${userLocation} and it's ${celsiusToFahr(
+          temperature
+        ).toFixed(1)}°F outside.`;
+
+        document.querySelector("p#weather").innerHTML = celsiusText;
+        document
+          .querySelector(".weather-group")
+          .addEventListener("click", function (e) {
+            if (e.target.id === "celsius") {
+              document.querySelector("p#weather").innerHTML = celsiusText;
+            } else {
+              document.querySelector("p#weather").innerHTML = fahrText;
+            }
+          });
+      })
+      .catch((error) => {
+        console.log(error);
+        document.querySelector("p#weather").innerHTML =
+          "Unable to get the weather info. Try again later";
+      });
+  });
+}
+
+//pageLoad
+menuHandler();
+greetingHandler();
+weatherHandler();
+clockHandler();
+galleryHandler();
 productsHandler();
